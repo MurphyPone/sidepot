@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sidepot</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    h1 { font-size: 1.5rem; }
+    .player { margin-bottom: 1rem; padding: 1rem; border: 1px solid #ccc; border-radius: 8px; }
+    input { margin: 0.2rem; }
+    button { margin-top: 1rem; }
+    pre { background: #f7f7f7; padding: 1rem; border-radius: 8px; }
+    .board-inputs { margin-left: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Poker Payout Calculator</h1>
+  <p>For those multiway all-ins on multiboard runouts</p>
+
+  <label for="boards">Number of boards: <span id="board-count">1</span></label><br>
+  <input type="range" id="boards" min="1" max="4" value="1" oninput="updateBoardCount(this.value)">
+
+  <div id="players"></div>
+  <button onclick="addPlayer()">Add Player</button>
+  <br>
+  <button onclick="compute()">Compute Payouts</button>
+
+  <h2>Results</h2>
+  <pre id="results"></pre>
+
+  <script>
+    let playerCount = 0;
+
+    function updateBoardCount(val) {
+      document.getElementById('board-count').textContent = val;
+      // Update hand fields for each player when board count changes
+      document.querySelectorAll('.player').forEach(div => {
+        const boardDiv = div.querySelector('.board-inputs');
+        renderBoardInputs(boardDiv, parseInt(val));
+      });
+    }
+
+    function renderBoardInputs(container, boards) {
+      container.innerHTML = '';
+      for (let i = 0; i < boards; i++) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'hand';
+        input.placeholder = `Hand strength on B${i+1}`;
+        container.appendChild(document.createTextNode(`Board ${i+1}: `));
+        container.appendChild(input);
+        container.appendChild(document.createElement('br'));
+      }
+    }
+
+    function addPlayer() {
+      playerCount++;
+      const div = document.createElement('div');
+      div.className = 'player';
+      div.id = 'player' + playerCount;
+      div.innerHTML = `
+        Name: <input type="text" class="name" value="Player ${playerCount}"><br>
+        Bet: <input type="number" class="bet" min="0"><br>
+        <div class="board-inputs"></div>
+      `;
+      document.getElementById('players').appendChild(div);
+
+      // Initialize board inputs according to current slider
+      const boards = parseInt(document.getElementById('boards').value);
+      renderBoardInputs(div.querySelector('.board-inputs'), boards);
+    }
+
+    function compute() {
+      const boards = parseInt(document.getElementById('boards').value);
+      const players = [];
+      document.querySelectorAll('.player').forEach(div => {
+        const name = div.querySelector('.name').value;
+        const bet = parseInt(div.querySelector('.bet').value);
+        const hands = Array.from(div.querySelectorAll('.hand')).map(x => parseInt(x.value));
+        if (name && !isNaN(bet) && hands.length === boards && hands.every(h => !isNaN(h))) {
+          players.push({ name, bet, hands });
+        }
+      });
+
+      if (players.length < 2) {
+        document.getElementById('results').textContent = "At least 2 players are required.";
+        return;
+      }
+
+      const payouts = computePayouts(players, boards);
+      document.getElementById('results').textContent = JSON.stringify(payouts, null, 2);
+    }
+
+    // Core logic ported from Python to JS
+    // Note: smaller rank number = stronger hand
+    function computePayouts(players, boards) {
+      const bets = [...new Set(players.map(p => p.bet))].sort((a, b) => a - b);
+      const pots = [];
+      let prev = 0;
+      for (let b of bets) {
+        const contributors = players.filter(p => p.bet >= b);
+        const amount = (b - prev) * contributors.length;
+        pots.push({ amount, contributors: contributors.map(c => c.name), per_board: amount / boards });
+        prev = b;
+      }
+
+      const payouts = {};
+      for (let p of players) payouts[p.name] = 0;
+
+      for (let board = 0; board < boards; board++) {
+        for (let pot of pots) {
+          const contenders = players.filter(p => pot.contributors.includes(p.name));
+          const minRank = Math.min(...contenders.map(p => p.hands[board]));
+          const winners = contenders.filter(p => p.hands[board] === minRank);
+          const share = pot.per_board / winners.length;
+          winners.forEach(w => { payouts[w.name] += share; });
+        }
+      }
+      return payouts;
+    }
+
+    // Ensure at least 2 players exist at startup
+    window.onload = () => {
+      addPlayer();
+      addPlayer();
+    };
+  </script>
+</body>
+</html>
