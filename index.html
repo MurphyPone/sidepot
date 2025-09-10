@@ -10,22 +10,43 @@
     h1 { font-size: 1.5rem; }
     .player { margin-bottom: 1rem; padding: 1rem; border: 1px solid #ccc; border-radius: 8px; }
     input { margin: 0.2rem; }
-    button { margin-top: 1rem; }
+    button { margin-top: 1rem; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; width: 100%; }
+    button:hover { opacity: 0.9; }
+    .add-btn { color: black; width: 49%; }
+    .remove-btn { background-color: #ee9090; width: 49%; }
+    .compute-btn { background-color: #90EE90; color: black; font-weight: bold; }
     pre { background: #f7f7f7; padding: 1rem; border-radius: 8px; }
     .board-inputs { margin-left: 1rem; }
-  </style>
+    input[type="text"], input[type="number"] {
+        padding: 0.4rem 0.6rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 1rem;
+        margin: 0.2rem 0;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus {
+        border-color: #007BFF;
+        box-shadow: 0 0 4px rgba(0,123,255,0.4);
+        outline: none;
+    }
+    </style>
 </head>
 <body>
   <h1>Poker Payout Calculator</h1>
-  <p>For those multiway all-ins on multiboard runouts</p>
+  <p>For multiway all-ins on multiboard runouts</p>
 
   <label for="boards">Number of boards: <span id="board-count">1</span></label><br>
-  <input type="range" id="boards" min="1" max="4" value="1" oninput="updateBoardCount(this.value)">
+  <input type="range" id="boards" min="1" max="5" value="1" oninput="updateBoardCount(this.value)">
 
   <div id="players"></div>
-  <button onclick="addPlayer()">Add Player</button>
+  <div>
+    <button class="add-btn" onclick="addPlayer()" style="float: left;">Add Player</button>
+    <button class="remove-btn" onclick="removePlayer()" style="float: right;">Remove Player</button>
+  </div>
   <br>
-  <button onclick="compute()">Compute Payouts</button>
+  <button class="compute-btn" onclick="compute()">Compute Payouts</button>
 
   <h2>Results</h2>
   <pre id="results"></pre>
@@ -49,7 +70,7 @@
         input.type = 'number';
         input.className = 'hand';
         input.placeholder = `Hand rank (1 best, 10 worst)`;
-        input.style = 'width: 190px'
+        input.style = 'width: 220px'
         container.appendChild(document.createTextNode(`Board ${i+1}: `));
         container.appendChild(input);
         container.appendChild(document.createElement('br'));
@@ -73,6 +94,16 @@
       renderBoardInputs(div.querySelector('.board-inputs'), boards);
     }
 
+    function removePlayer() {
+        if (playerCount > 2) {
+            const div = document.getElementById('player' + playerCount);
+            if (div) div.remove();
+            playerCount--;
+        } else {
+            alert('At least 2 players are required.');
+        }
+    }
+
     function compute() {
       const boards = parseInt(document.getElementById('boards').value);
       const players = [];
@@ -86,7 +117,7 @@
       });
 
       if (players.length < 2) {
-        document.getElementById('results').textContent = "At least 2 players are required.";
+        document.getElementById('results').textContent = "At least 2 players with bets and hand rankings are required.";
         return;
       }
 
