@@ -47,7 +47,8 @@
         const input = document.createElement('input');
         input.type = 'number';
         input.className = 'hand';
-        input.placeholder = `Hand strength on B${i+1}`;
+        input.placeholder = `Hand rank (1 best, 10 worst)`;
+        input.style = 'width: 190px'
         container.appendChild(document.createTextNode(`Board ${i+1}: `));
         container.appendChild(input);
         container.appendChild(document.createElement('br'));
